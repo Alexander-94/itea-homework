@@ -1,0 +1,7 @@
+путь к картинкам "img\\"
+путь ResourceBundle.getBundle "assets/pudge"
+файлы .properties внутри .jar, картинки и файл .bin снаружи
+
+1. cd bin, создать Ma.txt
+2. jar -cfm Pudge.jar Ma.txt homework1/pudge/*.class assets/*.properties
+3. java -jar Pudge.jar
