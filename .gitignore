@@ -1,0 +1,5 @@
+*.jar
+
+Guiform/target/*
+!Guiform/target/outer.png
+!Guiform/target/outer.txt
