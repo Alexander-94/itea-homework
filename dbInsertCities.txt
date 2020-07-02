@@ -1,0 +1,10 @@
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Bururi', 'A city located in southern Burundi', 5, 2);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Murore', '-', 2, 2);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Kayanza', 'A city located in northern Burundi', 20, 2);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Bujumbura', 'The largest city and main port of Burundi', 7, 2);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Muyinga', 'Muyinga is a city located in northern Burundi', 10, 2);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Bubanza', 'City located in northwestern Burundi', 9, 15);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Makamba', 'A city located in southern Burundi', 6, 4);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Ngozi', 'Ngozi is a city located in northern Burundi', 17, 6);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Muramvya', 'A city located in central Burundi', 4, 2);
+INSERT INTO CITIES(NAME, DESCRIPTION, RIDETIME, STOPTIME) VALUES('Buhongo', '-', 7, 1);
