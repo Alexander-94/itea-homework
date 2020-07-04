@@ -14,16 +14,14 @@ public class BusStation {
 		this.random = new Random();
 	}
 
-	public BusStation(List<City> route) {
+	public BusStation(DBWorker dbWorker) {
 		super();
-		this.route = route;
 		this.random = new Random();
+		this.dbWorker = dbWorker;
 	}
 
-	public synchronized List<City> getRoute() {
-		dbWorker = new DBWorker();
+	public List<City> getRoute() {
 		route = dbWorker.getAllCities();
-		//System.out.println("a" + route.toString());
 		return route;
 	}
 

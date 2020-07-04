@@ -17,8 +17,10 @@ public class DBWorker {
 	private static final String PASS = "";
 	private static final String DRIVER = "com.mysql.jdbc.Driver";
 	private final static String GET_ALL_CITIES = "SELECT * FROM CITIES ORDER BY ID";
+	private final static String GET_ALL_CITIES_CNT = "SELECT COUNT(*) FROM CITIES";
 	private Connection conn;
 	private List<City> cities;
+	private int citiesCnt;
 
 	public DBWorker() {
 		cities = new ArrayList<City>();
@@ -52,7 +54,8 @@ public class DBWorker {
 			stmt = conn.createStatement();
 			rs = stmt.executeQuery(GET_ALL_CITIES);
 			while (rs.next()) {
-				city = new City(rs.getInt("id"), rs.getString("name"), rs.getString("description"), rs.getInt("ridetime"), rs.getInt("stoptime"));
+				city = new City(rs.getInt("id"), rs.getString("name"), rs.getString("description"),
+						rs.getInt("ridetime"), rs.getInt("stoptime"));
 				cities.add(city);
 			}
 		} catch (Exception e) {
@@ -68,5 +71,32 @@ public class DBWorker {
 		}
 
 		return cities;
+	}
+
+	public int getAllCitiesCnt() {
+		Statement stmt = null;
+		ResultSet rs = null;
+		Connection conn = getConnection();
+
+		try {
+			stmt = conn.createStatement();
+			rs = stmt.executeQuery(GET_ALL_CITIES);
+			while (rs.next()) {
+				citiesCnt = rs.getInt(1);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		try {
+			rs.close();
+			stmt.close();
+			conn.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return citiesCnt;
 	}
 }

@@ -1,5 +1,10 @@
 package ua.itea;
 
+import java.awt.PaintContext;
+import java.awt.RenderingHints;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Rectangle2D;
+import java.awt.image.ColorModel;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +18,7 @@ import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -22,14 +28,21 @@ import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.Background;
+import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.CornerRadii;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
 import javafx.scene.paint.Paint;
+import javafx.scene.shape.Circle;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
@@ -37,22 +50,28 @@ import javafx.util.Duration;
 
 public class MainApp extends Application {
 
-	private static final String APP_NAME = "Bus";
-	private static final int WIDTH = 1200;
-	private static final int HEIGHT = 900;
+	private static final String APP_NAME = "Bus Competition";
+	private static final int WIDTH = 1180;
+	private static final int HEIGHT = 760;
 	private static final int MAX_PASSENGERS_ON_STATION = 70;
 	private static final int BUS1_MAX = 20;
 	private static final int BUS2_MAX = 7;
 	private static final int BUS3_MAX = 25;
-	private TextArea t1 = new TextArea();
-	private TextArea t2 = new TextArea();
-	private TextArea t3 = new TextArea();
-
+	private static final int BUS_PATH = 900;
+	private static final String BUS1_IMG_PATH = "images/laz.png";
+	private static final String BUS2_IMG_PATH = "images/merc.png";
+	private static final String BUS3_IMG_PATH = "images/bogdan.png";
+	private static final String BUS1_NAME = "LAZ";
+	private static final String BUS2_NAME = "Mercedes";
+	private static final String BUS3_NAME = "Bogdan";
+	private DBWorker dbWorker;
+	private TextArea t1;
+	private TextArea t2;
+	private TextArea t3;
 	private HBox topHBox;
 	private HBox leftHBox;
 	private HBox centerHBox;
 	private HBox bottomHBox;
-
 	private Pane topLeftPane;
 	private Pane topCenterPane;
 	private Pane topRightPane;
@@ -68,20 +87,76 @@ public class MainApp extends Application {
 	private Label lTopRightSpeed;
 	private Label lTopRightOccupied;
 	private Label lTopRightMax;
-
 	private Pane centerLeftPane;
 	private Pane centerCenterPane;
-
 	private Pane bottomPane;
-
+	private Rectangle bus1Rect;
+	private Rectangle bus2Rect;
+	private Rectangle bus3Rect;
+	private Line bus1Line;
+	private Line bus2Line;
+	private Line bus3Line;
 	private TranslateTransition trBus1;
 	private TranslateTransition trBus2;
 	private TranslateTransition trBus3;
-
+	private int busStopsCnt;
+	private int busMoveDst;
 	private Button exitBtn;
+	private Button startBtn;
+	private List<City> cityList;
+
+	{
+		dbWorker = new DBWorker();
+		busStopsCnt = dbWorker.getAllCitiesCnt();
+		busMoveDst = BUS_PATH / busStopsCnt;
+
+		cityList = dbWorker.getAllCities();
+		lTopLeft = new Label(BUS1_NAME);
+		lTopCenter = new Label(BUS2_NAME);
+		lTopRight = new Label(BUS3_NAME);
+	}
 
 	public static void main(String[] args) {
 		launch(args);
+	}
+	
+	@Override
+	public void start(Stage primaryStage) {			
+		
+		try {
+			initLayout();
+			BorderPane root = new BorderPane(centerHBox, topHBox, null, bottomHBox, leftHBox);
+			Scene scene = new Scene(root, WIDTH, HEIGHT);
+			scene.getStylesheets().add(getClass().getClassLoader().getResource("application.css").toExternalForm());
+			primaryStage.setScene(scene);
+			primaryStage.show();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		startBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				process();
+				startBtn.setDisable(true);
+			}
+		});
+		
+		exitBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				Platform.exit();
+				System.exit(0);
+			}
+		});
+
+		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				Platform.exit();
+				System.exit(0);
+			}
+		});
 	}
 
 	private void initLayout() {
@@ -90,7 +165,7 @@ public class MainApp extends Application {
 		leftHBox = new HBox();
 		centerHBox = new HBox();
 		bottomHBox = new HBox();
-		bottomHBox.setPrefHeight(300);
+		bottomHBox.setPrefSize(WIDTH, 100);
 
 		topLeftPane = new Pane();
 		topCenterPane = new Pane();
@@ -100,144 +175,172 @@ public class MainApp extends Application {
 		topRightPane.setPrefSize(400, 300);
 
 		centerLeftPane = new Pane();
+		centerLeftPane.setPrefWidth(100);
 		centerCenterPane = new Pane();
+		centerCenterPane.setPrefWidth(900);
 
 		bottomPane = new Pane();
-		bottomPane.setPrefHeight(300);
+		bottomPane.setPrefSize(WIDTH, 100);
 
 		topHBox.getChildren().addAll(topLeftPane, topCenterPane, topRightPane);
 		leftHBox.getChildren().add(centerLeftPane);
 		centerHBox.getChildren().add(centerCenterPane);
 		bottomHBox.getChildren().add(bottomPane);
 
-		lTopLeft = new Label("Bus1");
+		//lTopLeft = new Label("Bus1");
 		lTopLeft.setPrefSize(100, 20);
-		lTopLeft.setLayoutX(30);
+		lTopLeft.setLayoutX(20);
 		lTopLeft.setLayoutY(20);
 		lTopLeftSpeed = new Label("");
 		lTopLeftSpeed.setPrefSize(100, 20);
-		lTopLeftSpeed.setLayoutX(30);
+		lTopLeftSpeed.setLayoutX(20);
 		lTopLeftSpeed.setLayoutY(50);
 		lTopLeftOccupied = new Label("");
 		lTopLeftOccupied.setPrefSize(100, 20);
-		lTopLeftOccupied.setLayoutX(110);
+		lTopLeftOccupied.setLayoutX(105);
 		lTopLeftOccupied.setLayoutY(50);
 		lTopLeftMax = new Label("");
 		lTopLeftMax.setPrefSize(100, 20);
 		lTopLeftMax.setLayoutX(180);
 		lTopLeftMax.setLayoutY(50);
 		t1 = new TextArea();
-		t1.setLayoutX(30);
+		t1.setLayoutX(7);
 		t1.setLayoutY(88);
-		lTopCenter = new Label("Bus2");
+		t1.setEditable(false);
+		//lTopCenter = new Label("Bus2");
 		lTopCenter.setPrefSize(100, 20);
-		lTopCenter.setLayoutX(30);
+		lTopCenter.setLayoutX(20);
 		lTopCenter.setLayoutY(20);
 		lTopCenterSpeed = new Label("");
 		lTopCenterSpeed.setPrefSize(100, 20);
-		lTopCenterSpeed.setLayoutX(30);
+		lTopCenterSpeed.setLayoutX(20);
 		lTopCenterSpeed.setLayoutY(50);
 		lTopCenterOccupied = new Label("");
 		lTopCenterOccupied.setPrefSize(100, 20);
-		lTopCenterOccupied.setLayoutX(110);
+		lTopCenterOccupied.setLayoutX(105);
 		lTopCenterOccupied.setLayoutY(50);
 		lTopCenterMax = new Label("");
 		lTopCenterMax.setPrefSize(100, 20);
 		lTopCenterMax.setLayoutX(180);
 		lTopCenterMax.setLayoutY(50);
 		t2 = new TextArea();
-		t2.setLayoutX(30);
+		t2.setLayoutX(7);
 		t2.setLayoutY(88);
-		lTopRight = new Label("Bus3");
+		t2.setEditable(false);
+		//lTopRight = new Label("Bus3");
 		lTopRight.setPrefSize(100, 20);
-		lTopRight.setLayoutX(30);
+		lTopRight.setLayoutX(20);
 		lTopRight.setLayoutY(20);
 		lTopRightSpeed = new Label("");
 		lTopRightSpeed.setPrefSize(100, 20);
-		lTopRightSpeed.setLayoutX(30);
+		lTopRightSpeed.setLayoutX(20);
 		lTopRightSpeed.setLayoutY(50);
 		lTopRightOccupied = new Label("");
 		lTopRightOccupied.setPrefSize(100, 20);
-		lTopRightOccupied.setLayoutX(110);
+		lTopRightOccupied.setLayoutX(105);
 		lTopRightOccupied.setLayoutY(50);
 		lTopRightMax = new Label("");
 		lTopRightMax.setPrefSize(100, 20);
 		lTopRightMax.setLayoutX(180);
 		lTopRightMax.setLayoutY(50);
 		t3 = new TextArea();
-		t3.setLayoutX(30);
+		t3.setLayoutX(7);
 		t3.setLayoutY(88);
+		t3.setEditable(false);
+		
+		t1.setPrefWidth(380.0);
+		t1.setPrefHeight(207.0);
+		t2.setPrefWidth(380.0);
+		t2.setPrefHeight(207.0);
+		t3.setPrefWidth(380.0);
+		t3.setPrefHeight(207.0);
 
-		t1.setPrefWidth(330.0);
-		t1.setPrefHeight(200.0);
-		t2.setPrefWidth(330.0);
-		t2.setPrefHeight(200.0);
-		t3.setPrefWidth(330.0);
-		t3.setPrefHeight(200.0);
-
-		/*
-		 * exitBtn = new Button("Exit"); exitBtn.setPrefSize(100, 20);
-		 * exitBtn.setLayoutX(10); exitBtn.setLayoutY(10);
-		 */
-		/*
-		 * Label rt = new Label("asdasdasd"); rt.setPrefSize(100, 20);
-		 * rt.setLayoutX(30); rt.setLayoutY(20);
-		 */
+		startBtn = new Button("Start");
+		startBtn.setPrefSize(100, 40);
+		startBtn.setLayoutX(495);
+		startBtn.setLayoutY(30);
+		
+		exitBtn = new Button("Exit");
+		exitBtn.setPrefSize(100, 40);
+		exitBtn.setLayoutX(606);
+		exitBtn.setLayoutY(30);
 
 		topLeftPane.getChildren().addAll(lTopLeft, lTopLeftSpeed, lTopLeftOccupied, lTopLeftMax, t1);
 		topCenterPane.getChildren().addAll(lTopCenter, lTopCenterSpeed, lTopCenterOccupied, lTopCenterMax, t2);
 		topRightPane.getChildren().addAll(lTopRight, lTopRightSpeed, lTopRightOccupied, lTopRightMax, t3);
 
-		Rectangle rect = new Rectangle(0, 0, 100, 50);
-		InputStream imgStream = this.getClass().getClassLoader().getResourceAsStream("images/etalon.png");
-		Image img = new Image(imgStream);
-		rect.setFill(new ImagePattern(img));
+		int busWidth = 160;
+		int busHeigth = 60;
+		int busStartY = 100;
+		int busDeltaY = 85;
 
-		centerLeftPane.getChildren().addAll(rect);
-		// bottomPane.getChildren().add(rt);
-
-		trBus1 = new TranslateTransition(Duration.seconds(15), rect);
-		trBus1.setByX(600);
-		trBus1.play();
-
-		trBus1 = new TranslateTransition(Duration.seconds(2), rect);
-		trBus1.setByY(100);
-		trBus1.play();
-	}
-
-	@Override
-	public void start(Stage primaryStage) throws Exception {
-		initLayout();
-		BorderPane root = new BorderPane(centerHBox, topHBox, null, bottomHBox, leftHBox);
-		Scene scene = new Scene(root, WIDTH, HEIGHT);
-		try {
-			primaryStage.setTitle(APP_NAME);
-
-			
-			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
-			primaryStage.setScene(scene);
-			primaryStage.show();
-
-		} catch (Exception e) {
-			e.printStackTrace();
+		int tX = busWidth + 20;
+		int tY = busHeigth;		
+		for (int i = 0; i < busStopsCnt; i++) {			
+			Label l = new Label(cityList.get(i).getName());
+			Pane p = new Pane();
+			p.setPrefSize(busMoveDst, 10);
+			p.setLayoutX(tX-50);
+			p.setLayoutY(tY);
+			l.setPrefSize(100, 10);
+			l.setAlignment(Pos.CENTER);
+			l.setScaleX(0.8);
+			l.setScaleY(0.8);
+			p.getChildren().add(l);
+			//p.setBackground(new Background(new BackgroundFill(Color.ANTIQUEWHITE, CornerRadii.EMPTY, Insets.EMPTY)));
+			centerCenterPane.getChildren().add(p);
+			tX += busMoveDst;
 		}
+		
+		bus1Rect = new Rectangle(0, busStartY, busWidth, busHeigth);
+		bus1Line = createBusAndLine(bus1Rect, bus1Line, busWidth, busHeigth, BUS1_IMG_PATH, BUS_PATH, busMoveDst,
+				busDeltaY * 0);
 
-		process();
+		bus2Rect = new Rectangle(0, busStartY + busDeltaY, busWidth, busHeigth);
+		bus2Line = createBusAndLine(bus2Rect, bus2Line, busWidth, busHeigth, BUS2_IMG_PATH, BUS_PATH, busMoveDst,
+				busDeltaY * 1);
 
-		/*
-		 * primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() { public void
-		 * handle(WindowEvent we) { System.out.println("Stage is closing"); } });
-		 * primaryStage.close();
-		 */
+		bus3Rect = new Rectangle(0, busStartY + busDeltaY * 2, busWidth, busHeigth);
+		bus3Line = createBusAndLine(bus3Rect, bus3Line, busWidth, busHeigth, BUS3_IMG_PATH, BUS_PATH, busMoveDst,
+				busDeltaY * 2);
+
+		createLinePoints(centerCenterPane, busWidth, busHeigth, busMoveDst);
+		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY, busMoveDst);
+		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY * 2, busMoveDst);
+
+		centerCenterPane.getChildren().addAll(bus1Rect, bus2Rect, bus3Rect, bus1Line, bus2Line, bus3Line/*, tmpDelLbl*/);
+
+		bottomPane.getChildren().addAll(startBtn, exitBtn);
 
 	}
+
+	private void createLinePoints(Pane pane, int startX, int startY, int busMoveDst) {
+		int tX = startX + 20;
+		int tY = busMoveDst + startY;
+		for (int i = 0; i < busStopsCnt; i++) {
+			pane.getChildren().add(new Circle(tX, tY, 4, Color.DARKCYAN));
+			tX += busMoveDst;
+		}
+	}
+
+	private Line createBusAndLine(Rectangle busRect, Line busLine, int busWidth, int busHeight, String imgPath,
+			int busPath, int busMoveDst, int busDeltaY) {
+		InputStream imgStream = this.getClass().getClassLoader().getResourceAsStream(imgPath);
+		busRect.setFill(new ImagePattern(new Image(imgStream)));
+		busLine = new Line(busWidth + 20, busMoveDst + busHeight + busDeltaY, busWidth + 20 + busPath - busMoveDst,
+				busWidth + busDeltaY);
+		busLine.setStrokeWidth(3);
+		busLine.setStroke(Color.CADETBLUE);
+		return busLine;
+	}
+
+	
 
 	private void process() {
-
-		BusStation bs = new BusStation();
 		Random random = new Random();
-
+		BusStation bs = new BusStation(dbWorker);
 		List<City> route = bs.getRoute();
+
 		List<City> bl1 = new ArrayList<City>();
 		bl1.addAll(route);
 		List<City> bl2 = new ArrayList<City>();
@@ -245,25 +348,22 @@ public class MainApp extends Application {
 		List<City> bl3 = new ArrayList<City>();
 		bl3.addAll(route);
 
-		Object o = new Object();
 		CountDownLatch cl1 = new CountDownLatch(BUS1_MAX);
-		Bus b1 = new Bus("LAZ", BUS1_MAX, 0, bl1, cl1, t1, lTopLeftOccupied, o);
+		Bus b1 = new Bus(BUS1_NAME, BUS1_MAX, 0, bl1, cl1, t1, lTopLeftOccupied, trBus1, bus1Rect);
 		lTopLeft.setText(b1.getName());
 		lTopLeftSpeed.setText("Speed:" + b1.getSpeed());
 		lTopLeftOccupied.setText("Occupied:" + b1.getCurPassengers());
 		lTopLeftMax.setText("Max:" + b1.getMaxPassengers());
 
-		Object o1 = new Object();
 		CountDownLatch cl2 = new CountDownLatch(BUS2_MAX);
-		Bus b2 = new Bus("Mercedes", BUS2_MAX, 0, bl2, cl2, t2, lTopCenterOccupied, o1);
+		Bus b2 = new Bus(BUS2_NAME, BUS2_MAX, 0, bl2, cl2, t2, lTopCenterOccupied, trBus2, bus2Rect);
 		lTopCenter.setText(b2.getName());
 		lTopCenterSpeed.setText("Speed:" + b2.getSpeed());
 		lTopCenterOccupied.setText("Occupied:" + b2.getCurPassengers());
 		lTopCenterMax.setText("Max:" + b2.getMaxPassengers());
 
-		Object o2 = new Object();
 		CountDownLatch cl3 = new CountDownLatch(BUS3_MAX);
-		Bus b3 = new Bus("Bogdan", BUS3_MAX, 0, bl3, cl3, t3, lTopRightOccupied, o2);
+		Bus b3 = new Bus(BUS3_NAME, BUS3_MAX, 0, bl3, cl3, t3, lTopRightOccupied, trBus3, bus3Rect);
 		lTopRight.setText(b3.getName());
 		lTopRightSpeed.setText("Speed:" + b3.getSpeed());
 		lTopRightOccupied.setText("Occupied:" + b3.getCurPassengers());

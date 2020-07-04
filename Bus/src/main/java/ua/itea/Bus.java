@@ -1,13 +1,19 @@
 package ua.itea;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import javafx.animation.TranslateTransition;
 import javafx.application.Platform;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
+import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
 
 public class Bus implements Runnable {
 
@@ -20,15 +26,17 @@ public class Bus implements Runnable {
 	private int speed;
 	private TextArea t1;
 	private Label l;
+	private TranslateTransition ts;
+	private Rectangle r;
 
-	private Object o;
+	private Thread t;
 
 	public Bus() {
 		super();
 	}
 
 	public Bus(String name, int maxPassengers, int curPassengers, List<City> route, CountDownLatch startLatch,
-			TextArea t1, Label l, Object o) {
+			TextArea t1, Label l, TranslateTransition ts, Rectangle r) {
 		super();
 		this.name = name;
 		this.maxPassengers = maxPassengers;
@@ -37,14 +45,15 @@ public class Bus implements Runnable {
 		this.startLatch = startLatch;
 		this.t1 = t1;
 		this.l = l;
-		this.o = o;
+		this.ts = ts;
+		this.r = r;
 		Random random = new Random();
-		speed = random.nextInt(10);
-
-		Thread t = new Thread(this);
+		speed = random.nextInt(7);
+		t = new Thread(this);
 		t.start();
-		//System.out.println("Bus:" + name + " starts!");
 	}
+
+	private boolean isFull;
 
 	@Override
 	public void run() {
@@ -52,47 +61,75 @@ public class Bus implements Runnable {
 
 			if (startLatch.getCount() > 0) {
 				try {
-					//System.out.println("Bus:" + name + " is waiting for people");
 					Platform.runLater(() -> t1.appendText("\nBus:" + name + " is waiting for people"));
 					startLatch.await();
-
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
 				}
 			}
-
-			try {
-				int c = MAN_GET_ON_TIME * maxPassengers;
-				TimeUnit.MILLISECONDS.sleep(c);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
+			if (startLatch.getCount() == 0 && isFull == false) {
+				synchronized (t) {
+					try {
+						t.wait();//ждем запуска от последнего пассажира
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+					System.out.println("Bus"+name+"have waited");
+				}
+				isFull = true;
 			}
 
-			//System.out.println("Bus: " + name + " is driving to:" + route.get(0).getName());
-			Platform.runLater(() -> t1.appendText("\nBus: " + name + " is driving to:" + route.get(0).getName()));
-			int rideTime = route.get(0).getRideTime();
+			Platform.runLater(() -> t1.appendText("\n" + name + " is driving to: " + route.get(0).getName()));
+
+			int rideTime = route.get(0).getRideTime() - speed;
+			if (rideTime <= 0) {				
+				rideTime = 1;
+			}
+			//System.out.println("Ridetime "+name+":"+rideTime);
+		
+			moveBus(100, rideTime, ts, r);
+			synchronized (t) {
+				try {
+					t.wait();//ждем окончания анимации движения
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+
 			try {
-				int tmp = rideTime - speed;
-				TimeUnit.SECONDS.sleep(tmp);
+				TimeUnit.SECONDS.sleep(rideTime);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
-			//System.out.println("Bus: " + name + " is stopped in: " + route.get(0).getName());
-			Platform.runLater(() -> t1.appendText("\nBus: " + name + " is stopped in:" + route.get(0).getName()));
 
-			int stopTime = route.get(0).getStopTime();
+			Platform.runLater(() -> t1.appendText("\n" + name + " is stopping in: " + route.get(0).getName()));
 			try {
-				TimeUnit.SECONDS.sleep(stopTime);
+				TimeUnit.SECONDS.sleep(route.get(0).getStopTime());
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+
 			route.remove(0);
 			if (route.size() == 0) {
-				//System.out.println("Bus: " + name + " has arrived!");
-				Platform.runLater(() -> t1.appendText("\nBus: " + name + " has arrived!"));
+				Platform.runLater(() -> t1.appendText("\n" + name + " has arrived!"));
 			}
 		}
 
+	}
+
+	private void moveBus(int deltaX, int timeSec, TranslateTransition movement, Rectangle bus) {
+		movement = new TranslateTransition(Duration.seconds(timeSec), bus);
+		movement.setByX(100);
+		movement.setOnFinished(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent arg0) {
+				//System.out.println("true"+name);
+				synchronized (t) {
+					t.notify();
+				}
+			}
+		});
+		movement.play();
 	}
 
 	public int getMaxPassengers() {
@@ -112,7 +149,8 @@ public class Bus implements Runnable {
 	}
 
 	public void getIntoTheBus() {
-		synchronized (o) {
+		synchronized (t) {
+			
 			curPassengers += 1;
 			try {
 				TimeUnit.MILLISECONDS.sleep(MAN_GET_ON_TIME);
@@ -132,4 +170,9 @@ public class Bus implements Runnable {
 		return t1;
 	}
 
+	public Thread getT() {
+		return t;
+	}
+
+	
 }

@@ -1,5 +1,6 @@
 package ua.itea;
 
+import java.util.Objects;
 import java.util.Random;
 
 import javafx.application.Platform;
@@ -15,6 +16,7 @@ public class Passenger implements Runnable {
 	private boolean isInMask;
 	private Random random;
 	private boolean isBanned;
+	private int bannedCnt;
 
 	public Passenger() {
 		super();
@@ -27,7 +29,14 @@ public class Passenger implements Runnable {
 		this.b2 = b2;
 		this.b3 = b3;
 		random = new Random();
-		this.isInMask = random.nextBoolean();
+		this.bannedCnt = 0;
+		int r = 03072020;
+		int tmp = random.nextInt(r);	
+		if (tmp > r / 2) {
+			this.isInMask = true;
+		} else {
+			this.isInMask = false;
+		}
 		Thread t = new Thread(this);
 		t.setDaemon(true);
 		t.start();
@@ -37,80 +46,52 @@ public class Passenger implements Runnable {
 	public void run() {
 		while (!isInBus) {
 
+			int c = random.nextInt(3);
+			if (c == 0 && b1.getStartLatch().getCount() > 0 && b1.getCurPassengers()!=b1.getMaxPassengers()) {
+				passengerGetsInBus(isInMask, b1);
+			} else if (c == 1 && b2.getStartLatch().getCount() > 0 && b2.getCurPassengers()!=b2.getMaxPassengers()) {
+				passengerGetsInBus(isInMask, b2);
+			} else if (c == 2 && b3.getStartLatch().getCount() > 0 && b3.getCurPassengers()!=b3.getMaxPassengers()) {
+				passengerGetsInBus(isInMask, b3);
+			}
+
 			// passenger has been banned for not wearing a mask
 			if (isBanned) {
 				return;
 			}
 
-			int c = random.nextInt(3);
-			if (c == 0 && b1.getStartLatch().getCount() > 0) {
-				if (isInMask) {
-					b1.getStartLatch().countDown();
-					b1.getIntoTheBus();
-					//System.out.println("Passenger: " + name + " got into the bus!");
-					message = "\nPassenger: " + name + " got into the bus!" + b1.getName();
-					Platform.runLater(() -> b1.getT1().appendText(message));
-					isInBus = true;
-				} else {
-					//System.out.println("\nPassenger: " + name + " no mask! Go to hell!");
-					message = "\nPassenger: " + name + " no mask! Go to hell!" + b1.getName();
-					Platform.runLater(() -> b1.getT1().appendText(message));
-					this.isInMask = random.nextBoolean();
-					if (!isInMask) {
-						isBanned = true;
-						message = "\nPassenger: " + name + " has been banned for not wearing a mask!";
-						Platform.runLater(() -> b1.getT1().appendText(message));
-					}
-				}
-			} else if (c == 1 && b2.getStartLatch().getCount() > 0) {
-				if (isInMask) {
-					b2.getStartLatch().countDown();
-					b2.getIntoTheBus();
-					//System.out.println("Passenger: " + name + " got into the bus!");
-					message = "\nPassenger: " + name + " got into the bus!" + b2.getName();
-					Platform.runLater(() -> b2.getT1().appendText(message));
-					isInBus = true;
-				} else {
-					//System.out.println("\nPassenger: " + name + " no mask! Go to hell!");
-					message = "\nPassenger: " + name + " no mask! Go to hell!" + b2.getName();
-					Platform.runLater(() -> b2.getT1().appendText(message));
-					this.isInMask = random.nextBoolean();
-					if (!isInMask) {
-						isBanned = true;
-						message = "\nPassenger: " + name + " has been banned for not wearing a mask!";
-						Platform.runLater(() -> b2.getT1().appendText(message));
-					}
-				}
-			} else if (c == 2 && b3.getStartLatch().getCount() > 0) {
-				if (isInMask) {
-					b3.getStartLatch().countDown();
-					b3.getIntoTheBus();
-					//System.out.println("Passenger: " + name + " got into the bus!");
-					message = "\nPassenger: " + name + " got into the bus!" + b3.getName();
-					Platform.runLater(() -> b3.getT1().appendText(message));
-					isInBus = true;
-				} else {
-					//System.out.println("\nPassenger: " + name + " no mask! Go to hell!");
-					message = "\nPassenger: " + name + " no mask! Go to hell!" + b3.getName();
-					Platform.runLater(() -> b3.getT1().appendText(message));
-					this.isInMask = random.nextBoolean();
-					if (!isInMask) {
-						isBanned = true;
-						message = "\nPassenger: " + name + " has been banned for not wearing a mask!";
-						Platform.runLater(() -> b3.getT1().appendText(message));
-					}
+		}
+	}
+
+	private void passengerGetsInBus(boolean isInMask, Bus b) {
+		if (isInMask) {
+			b.getStartLatch().countDown();
+			b.getIntoTheBus();
+			message = "\nPassenger: " + name + " got into the bus!";
+			Platform.runLater(() -> b.getT1().appendText(message));
+			isInBus = true;
+			if (b.getStartLatch().getCount() == 0) {
+				synchronized (b.getT()) {
+					b.getT().notify(); // будим 1 рандомный поток на этом мониторе (спит только Bus)
 				}
 			}
-			/*
-			 * if (b1.getStartLatch().getCount() > 0) {
-			 * 
-			 * } else if (b2.getStartLatch().getCount() > 0) {
-			 * 
-			 * 
-			 * } else if (b3.getStartLatch().getCount() > 0) {
-			 * 
-			 * }
-			 */
+		} else if (!isInMask) {
+
+			if (!isBanned) {
+				message = "\nPassenger: " + name + " no mask! Ride bicycle!";
+				Platform.runLater(() -> b.getT1().appendText(message));
+				this.isInMask = random.nextBoolean();
+				if(!isInMask) {
+					bannedCnt++;
+				}
+				if(bannedCnt>=2) {
+					isBanned = true;
+				}
+			} 
+			if (isBanned) {
+				message = "\nPassenger: " + name + " has been banned for not wearing a mask!";
+				Platform.runLater(() -> b.getT1().appendText(message));
+			}
 		}
 	}
 
