@@ -15,7 +15,6 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Duration;
 
 public class Bus implements Runnable {
-
 	private static final int MAN_GET_ON_TIME = 200;
 	private String name;
 	private int maxPassengers;
@@ -23,11 +22,10 @@ public class Bus implements Runnable {
 	private List<City> route;
 	private CountDownLatch startLatch;
 	private int speed;
-	private TextArea t1;
+	private TextArea tA;
 	private Label l;
-	private TranslateTransition ts;
+	private TranslateTransition tS;
 	private Rectangle r;
-
 	private Thread t;
 
 	public Bus() {
@@ -42,9 +40,9 @@ public class Bus implements Runnable {
 		this.curPassengers = curPassengers;
 		this.route = route;
 		this.startLatch = startLatch;
-		this.t1 = t1;
+		this.tA = t1;
 		this.l = l;
-		this.ts = ts;
+		this.tS = ts;
 		this.r = r;
 		Random random = new Random();
 		speed = random.nextInt(7);
@@ -60,7 +58,7 @@ public class Bus implements Runnable {
 
 			if (startLatch.getCount() > 0) {
 				try {
-					Platform.runLater(() -> t1.appendText("\nBus:" + name + " is waiting for people"));
+					Platform.runLater(() -> tA.appendText("\nBus:" + name + " is waiting for people"));
 					startLatch.await();
 				} catch (InterruptedException e1) {
 					e1.printStackTrace();
@@ -78,14 +76,14 @@ public class Bus implements Runnable {
 				isFull = true;
 			}
 
-			Platform.runLater(() -> t1.appendText("\n" + name + " is driving to: " + route.get(0).getName()));
+			Platform.runLater(() -> tA.appendText("\n" + name + " is driving to: " + route.get(0).getName()));
 
 			int rideTime = route.get(0).getRideTime() - speed;
 			if (rideTime <= 0) {
 				rideTime = 1;
 			}
 
-			moveBus(100, rideTime, ts, r);
+			moveBus(100, rideTime, tS, r);
 			synchronized (t) {
 				try {
 					t.wait();// ждем окончания анимации движения
@@ -100,7 +98,7 @@ public class Bus implements Runnable {
 				e.printStackTrace();
 			}
 
-			Platform.runLater(() -> t1.appendText("\n" + name + " is stopping in: " + route.get(0).getName()));
+			Platform.runLater(() -> tA.appendText("\n" + name + " is stopping in: " + route.get(0).getName()));
 			try {
 				TimeUnit.SECONDS.sleep(route.get(0).getStopTime());
 			} catch (InterruptedException e) {
@@ -109,7 +107,7 @@ public class Bus implements Runnable {
 
 			route.remove(0);
 			if (route.size() == 0) {
-				Platform.runLater(() -> t1.appendText("\n" + name + " has arrived!"));
+				Platform.runLater(() -> tA.appendText("\n" + name + " has arrived!"));
 			}
 		}
 
@@ -147,7 +145,6 @@ public class Bus implements Runnable {
 
 	public void getIntoTheBus() {
 		synchronized (t) {
-
 			curPassengers += 1;
 			try {
 				TimeUnit.MILLISECONDS.sleep(MAN_GET_ON_TIME);
@@ -164,7 +161,7 @@ public class Bus implements Runnable {
 	}
 
 	public TextArea getT1() {
-		return t1;
+		return tA;
 	}
 
 	public Thread getT() {

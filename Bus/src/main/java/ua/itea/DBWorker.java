@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DBWorker {
-
 	private static final String HOST = "jdbc:mysql://localhost/";
 	private static final String DB_NAME = "busdb";
 	private static final String USER = "root";
@@ -79,7 +78,7 @@ public class DBWorker {
 
 		try {
 			stmt = conn.createStatement();
-			rs = stmt.executeQuery(GET_ALL_CITIES);
+			rs = stmt.executeQuery(GET_ALL_CITIES_CNT);
 			while (rs.next()) {
 				citiesCnt = rs.getInt(1);
 			}

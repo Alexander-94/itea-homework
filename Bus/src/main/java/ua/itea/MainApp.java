@@ -240,8 +240,7 @@ public class MainApp extends Application {
 		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY, busMoveDst);
 		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY * 2, busMoveDst);
 
-		centerCenterPane.getChildren().addAll(bus1Rect, bus2Rect, bus3Rect, bus1Line, bus2Line,
-				bus3Line);
+		centerCenterPane.getChildren().addAll(bus1Rect, bus2Rect, bus3Rect, bus1Line, bus2Line, bus3Line);
 
 		bottomPane.getChildren().addAll(startBtn, exitBtn);
 	}
@@ -317,6 +316,7 @@ public class MainApp extends Application {
 			scene.getStylesheets().add(getClass().getClassLoader().getResource(CSS_STYLE_PATH).toExternalForm());
 			primaryStage.setScene(scene);
 			primaryStage.setTitle(APP_NAME);
+			primaryStage.setResizable(false);
 			primaryStage.show();
 		} catch (Exception e) {
 			e.printStackTrace();
