@@ -1,7 +1,6 @@
 package ua.itea;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -70,11 +69,11 @@ public class Bus implements Runnable {
 			if (startLatch.getCount() == 0 && isFull == false) {
 				synchronized (t) {
 					try {
-						t.wait();//ждем запуска от последнего пассажира
+						t.wait();// ждем запуска от последнего пассажира
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
-					System.out.println("Bus"+name+"have waited");
+					System.out.println("Bus" + name + "have waited");
 				}
 				isFull = true;
 			}
@@ -82,15 +81,14 @@ public class Bus implements Runnable {
 			Platform.runLater(() -> t1.appendText("\n" + name + " is driving to: " + route.get(0).getName()));
 
 			int rideTime = route.get(0).getRideTime() - speed;
-			if (rideTime <= 0) {				
+			if (rideTime <= 0) {
 				rideTime = 1;
 			}
-			//System.out.println("Ridetime "+name+":"+rideTime);
-		
+
 			moveBus(100, rideTime, ts, r);
 			synchronized (t) {
 				try {
-					t.wait();//ждем окончания анимации движения
+					t.wait();// ждем окончания анимации движения
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -123,7 +121,6 @@ public class Bus implements Runnable {
 		movement.setOnFinished(new EventHandler<ActionEvent>() {
 			@Override
 			public void handle(ActionEvent arg0) {
-				//System.out.println("true"+name);
 				synchronized (t) {
 					t.notify();
 				}
@@ -150,7 +147,7 @@ public class Bus implements Runnable {
 
 	public void getIntoTheBus() {
 		synchronized (t) {
-			
+
 			curPassengers += 1;
 			try {
 				TimeUnit.MILLISECONDS.sleep(MAN_GET_ON_TIME);
@@ -174,5 +171,4 @@ public class Bus implements Runnable {
 		return t;
 	}
 
-	
 }

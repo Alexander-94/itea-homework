@@ -1,52 +1,31 @@
 package ua.itea;
 
-import java.awt.PaintContext;
-import java.awt.RenderingHints;
-import java.awt.geom.AffineTransform;
-import java.awt.geom.Rectangle2D;
-import java.awt.image.ColorModel;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.Timeline;
 import javafx.animation.TranslateTransition;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.CornerRadii;
-import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.ImagePattern;
-import javafx.scene.paint.Paint;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
-import javafx.scene.text.Text;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
-import javafx.util.Duration;
 
 public class MainApp extends Application {
 
@@ -64,7 +43,10 @@ public class MainApp extends Application {
 	private static final String BUS1_NAME = "LAZ";
 	private static final String BUS2_NAME = "Mercedes";
 	private static final String BUS3_NAME = "Bogdan";
+	private static final String CSS_STYLE_PATH = "application.css";
 	private DBWorker dbWorker;
+	private List<City> cityList;
+
 	private TextArea t1;
 	private TextArea t2;
 	private TextArea t3;
@@ -103,9 +85,8 @@ public class MainApp extends Application {
 	private int busMoveDst;
 	private Button exitBtn;
 	private Button startBtn;
-	private List<City> cityList;
 
-	{
+	public MainApp() {
 		dbWorker = new DBWorker();
 		busStopsCnt = dbWorker.getAllCitiesCnt();
 		busMoveDst = BUS_PATH / busStopsCnt;
@@ -114,52 +95,7 @@ public class MainApp extends Application {
 		lTopLeft = new Label(BUS1_NAME);
 		lTopCenter = new Label(BUS2_NAME);
 		lTopRight = new Label(BUS3_NAME);
-	}
 
-	public static void main(String[] args) {
-		launch(args);
-	}
-	
-	@Override
-	public void start(Stage primaryStage) {			
-		
-		try {
-			initLayout();
-			BorderPane root = new BorderPane(centerHBox, topHBox, null, bottomHBox, leftHBox);
-			Scene scene = new Scene(root, WIDTH, HEIGHT);
-			scene.getStylesheets().add(getClass().getClassLoader().getResource("application.css").toExternalForm());
-			primaryStage.setScene(scene);
-			primaryStage.show();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		startBtn.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				process();
-				startBtn.setDisable(true);
-			}
-		});
-		
-		exitBtn.setOnAction(new EventHandler<ActionEvent>() {
-			@Override
-			public void handle(ActionEvent event) {
-				Platform.exit();
-				System.exit(0);
-			}
-		});
-
-		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
-			@Override
-			public void handle(WindowEvent event) {
-				Platform.exit();
-				System.exit(0);
-			}
-		});
-	}
-
-	private void initLayout() {
 		topHBox = new HBox();
 		topHBox.setPrefHeight(300);
 		leftHBox = new HBox();
@@ -187,7 +123,6 @@ public class MainApp extends Application {
 		centerHBox.getChildren().add(centerCenterPane);
 		bottomHBox.getChildren().add(bottomPane);
 
-		//lTopLeft = new Label("Bus1");
 		lTopLeft.setPrefSize(100, 20);
 		lTopLeft.setLayoutX(20);
 		lTopLeft.setLayoutY(20);
@@ -207,7 +142,6 @@ public class MainApp extends Application {
 		t1.setLayoutX(7);
 		t1.setLayoutY(88);
 		t1.setEditable(false);
-		//lTopCenter = new Label("Bus2");
 		lTopCenter.setPrefSize(100, 20);
 		lTopCenter.setLayoutX(20);
 		lTopCenter.setLayoutY(20);
@@ -227,7 +161,6 @@ public class MainApp extends Application {
 		t2.setLayoutX(7);
 		t2.setLayoutY(88);
 		t2.setEditable(false);
-		//lTopRight = new Label("Bus3");
 		lTopRight.setPrefSize(100, 20);
 		lTopRight.setLayoutX(20);
 		lTopRight.setLayoutY(20);
@@ -247,7 +180,7 @@ public class MainApp extends Application {
 		t3.setLayoutX(7);
 		t3.setLayoutY(88);
 		t3.setEditable(false);
-		
+
 		t1.setPrefWidth(380.0);
 		t1.setPrefHeight(207.0);
 		t2.setPrefWidth(380.0);
@@ -259,7 +192,7 @@ public class MainApp extends Application {
 		startBtn.setPrefSize(100, 40);
 		startBtn.setLayoutX(495);
 		startBtn.setLayoutY(30);
-		
+
 		exitBtn = new Button("Exit");
 		exitBtn.setPrefSize(100, 40);
 		exitBtn.setLayoutX(606);
@@ -275,23 +208,22 @@ public class MainApp extends Application {
 		int busDeltaY = 85;
 
 		int tX = busWidth + 20;
-		int tY = busHeigth;		
-		for (int i = 0; i < busStopsCnt; i++) {			
+		int tY = busHeigth;
+		for (int i = 0; i < busStopsCnt; i++) {
 			Label l = new Label(cityList.get(i).getName());
 			Pane p = new Pane();
 			p.setPrefSize(busMoveDst, 10);
-			p.setLayoutX(tX-50);
+			p.setLayoutX(tX - 50);
 			p.setLayoutY(tY);
 			l.setPrefSize(100, 10);
 			l.setAlignment(Pos.CENTER);
 			l.setScaleX(0.8);
 			l.setScaleY(0.8);
 			p.getChildren().add(l);
-			//p.setBackground(new Background(new BackgroundFill(Color.ANTIQUEWHITE, CornerRadii.EMPTY, Insets.EMPTY)));
 			centerCenterPane.getChildren().add(p);
 			tX += busMoveDst;
 		}
-		
+
 		bus1Rect = new Rectangle(0, busStartY, busWidth, busHeigth);
 		bus1Line = createBusAndLine(bus1Rect, bus1Line, busWidth, busHeigth, BUS1_IMG_PATH, BUS_PATH, busMoveDst,
 				busDeltaY * 0);
@@ -308,10 +240,10 @@ public class MainApp extends Application {
 		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY, busMoveDst);
 		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY * 2, busMoveDst);
 
-		centerCenterPane.getChildren().addAll(bus1Rect, bus2Rect, bus3Rect, bus1Line, bus2Line, bus3Line/*, tmpDelLbl*/);
+		centerCenterPane.getChildren().addAll(bus1Rect, bus2Rect, bus3Rect, bus1Line, bus2Line,
+				bus3Line);
 
 		bottomPane.getChildren().addAll(startBtn, exitBtn);
-
 	}
 
 	private void createLinePoints(Pane pane, int startX, int startY, int busMoveDst) {
@@ -333,8 +265,6 @@ public class MainApp extends Application {
 		busLine.setStroke(Color.CADETBLUE);
 		return busLine;
 	}
-
-	
 
 	private void process() {
 		Random random = new Random();
@@ -372,6 +302,49 @@ public class MainApp extends Application {
 		for (int i = 0; i < MAX_PASSENGERS_ON_STATION; i++) {
 			new Passenger("Man" + random.nextInt(50) + random.nextInt(50), b1, b2, b3);
 		}
+	}
+
+	public static void main(String[] args) {
+		launch(args);
+	}
+
+	@Override
+	public void start(Stage primaryStage) {
+
+		try {
+			BorderPane root = new BorderPane(centerHBox, topHBox, null, bottomHBox, leftHBox);
+			Scene scene = new Scene(root, WIDTH, HEIGHT);
+			scene.getStylesheets().add(getClass().getClassLoader().getResource(CSS_STYLE_PATH).toExternalForm());
+			primaryStage.setScene(scene);
+			primaryStage.setTitle(APP_NAME);
+			primaryStage.show();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		startBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				process();
+				startBtn.setDisable(true);
+			}
+		});
+
+		exitBtn.setOnAction(new EventHandler<ActionEvent>() {
+			@Override
+			public void handle(ActionEvent event) {
+				Platform.exit();
+				System.exit(0);
+			}
+		});
+
+		primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
+			@Override
+			public void handle(WindowEvent event) {
+				Platform.exit();
+				System.exit(0);
+			}
+		});
 	}
 
 }
