@@ -27,13 +27,14 @@ public class Bus implements Runnable {
 	private TranslateTransition tS;
 	private Rectangle r;
 	private Thread t;
+	private MusicStopThread musicStopThread;
 
 	public Bus() {
 		super();
 	}
 
 	public Bus(String name, int maxPassengers, int curPassengers, List<City> route, CountDownLatch startLatch,
-			TextArea t1, Label l, TranslateTransition ts, Rectangle r) {
+			TextArea t1, Label l, TranslateTransition ts, Rectangle r, MusicStopThread musicStopThread) {
 		super();
 		this.name = name;
 		this.maxPassengers = maxPassengers;
@@ -44,6 +45,7 @@ public class Bus implements Runnable {
 		this.l = l;
 		this.tS = ts;
 		this.r = r;
+		this.musicStopThread = musicStopThread;
 		Random random = new Random();
 		speed = random.nextInt(7);
 		t = new Thread(this);
@@ -108,6 +110,7 @@ public class Bus implements Runnable {
 			route.remove(0);
 			if (route.size() == 0) {
 				Platform.runLater(() -> tA.appendText("\n" + name + " has arrived!"));
+				musicStopThread.getMusicStopLatch().countDown();
 			}
 		}
 

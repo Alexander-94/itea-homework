@@ -97,4 +97,14 @@ public class DBWorker {
 
 		return citiesCnt;
 	}
+
+	public static String getDbName() {
+		return DB_NAME;
+	}
+
+	public static String getUser() {
+		return USER;
+	}
+	
+	
 }

@@ -36,17 +36,23 @@ public class MainApp extends Application {
 	private static final int BUS1_MAX = 20;
 	private static final int BUS2_MAX = 7;
 	private static final int BUS3_MAX = 25;
-	private static final int BUS_PATH = 900;
-	private static final String BUS1_IMG_PATH = "images/laz.png";
+	public static final int BUS_PATH = 900;
+	public static final String BUS1_IMG_PATH = "images/laz.png";
 	private static final String BUS2_IMG_PATH = "images/merc.png";
 	private static final String BUS3_IMG_PATH = "images/bogdan.png";
 	private static final String BUS1_NAME = "LAZ";
 	private static final String BUS2_NAME = "Mercedes";
 	private static final String BUS3_NAME = "Bogdan";
 	private static final String CSS_STYLE_PATH = "application.css";
+	public static final int BUS_WIDTH = 160;
+	public static final int BUS_HEIGHT = 60;
+	public static final int BUS_START_Y = 100;
+	public static final int BUS_DELTA_Y = 85;
 	private DBWorker dbWorker;
 	private List<City> cityList;
-
+	private Player player;
+	private MusicStopThread musicStopThread;
+		
 	private TextArea t1;
 	private TextArea t2;
 	private TextArea t3;
@@ -90,8 +96,8 @@ public class MainApp extends Application {
 		dbWorker = new DBWorker();
 		busStopsCnt = dbWorker.getAllCitiesCnt();
 		busMoveDst = BUS_PATH / busStopsCnt;
-
-		cityList = dbWorker.getAllCities();
+		cityList = dbWorker.getAllCities();	
+		
 		lTopLeft = new Label(BUS1_NAME);
 		lTopCenter = new Label(BUS2_NAME);
 		lTopRight = new Label(BUS3_NAME);
@@ -202,14 +208,33 @@ public class MainApp extends Application {
 		topCenterPane.getChildren().addAll(lTopCenter, lTopCenterSpeed, lTopCenterOccupied, lTopCenterMax, t2);
 		topRightPane.getChildren().addAll(lTopRight, lTopRightSpeed, lTopRightOccupied, lTopRightMax, t3);
 
-		int busWidth = 160;
-		int busHeigth = 60;
-		int busStartY = 100;
-		int busDeltaY = 85;
+		drawRoute(centerCenterPane, BUS_WIDTH, BUS_HEIGHT, busStopsCnt, busMoveDst, cityList);
 
-		int tX = busWidth + 20;
-		int tY = busHeigth;
-		for (int i = 0; i < busStopsCnt; i++) {
+		bus1Rect = new Rectangle(0, BUS_START_Y, BUS_WIDTH, BUS_HEIGHT);
+		bus1Line = createBusAndLine(bus1Rect, bus1Line, BUS_WIDTH, BUS_HEIGHT, BUS1_IMG_PATH, BUS_PATH, busMoveDst,
+				BUS_DELTA_Y * 0);
+
+		bus2Rect = new Rectangle(0, BUS_START_Y + BUS_DELTA_Y, BUS_WIDTH, BUS_HEIGHT);
+		bus2Line = createBusAndLine(bus2Rect, bus2Line, BUS_WIDTH, BUS_HEIGHT, BUS2_IMG_PATH, BUS_PATH, busMoveDst,
+				BUS_DELTA_Y * 1);
+
+		bus3Rect = new Rectangle(0, BUS_START_Y + BUS_DELTA_Y * 2, BUS_WIDTH, BUS_HEIGHT);
+		bus3Line = createBusAndLine(bus3Rect, bus3Line, BUS_WIDTH, BUS_HEIGHT, BUS3_IMG_PATH, BUS_PATH, busMoveDst,
+				BUS_DELTA_Y * 2);
+
+		createLinePoints(centerCenterPane, BUS_WIDTH, BUS_HEIGHT, busMoveDst);
+		createLinePoints(centerCenterPane, BUS_WIDTH, BUS_HEIGHT + BUS_DELTA_Y, busMoveDst);
+		createLinePoints(centerCenterPane, BUS_WIDTH, BUS_HEIGHT + BUS_DELTA_Y * 2, busMoveDst);
+
+		centerCenterPane.getChildren().addAll(bus1Rect, bus2Rect, bus3Rect, bus1Line, bus2Line, bus3Line);
+
+		bottomPane.getChildren().addAll(startBtn, exitBtn);		
+	}
+
+	private void drawRoute(Pane pane, int startX, int startY, int stopsCnt, int busMoveDst, List<City> cityList) {
+		int tX = startX + 20;
+		int tY = startY;
+		for (int i = 0; i < stopsCnt; i++) {
 			Label l = new Label(cityList.get(i).getName());
 			Pane p = new Pane();
 			p.setPrefSize(busMoveDst, 10);
@@ -220,29 +245,9 @@ public class MainApp extends Application {
 			l.setScaleX(0.8);
 			l.setScaleY(0.8);
 			p.getChildren().add(l);
-			centerCenterPane.getChildren().add(p);
+			pane.getChildren().add(p);
 			tX += busMoveDst;
 		}
-
-		bus1Rect = new Rectangle(0, busStartY, busWidth, busHeigth);
-		bus1Line = createBusAndLine(bus1Rect, bus1Line, busWidth, busHeigth, BUS1_IMG_PATH, BUS_PATH, busMoveDst,
-				busDeltaY * 0);
-
-		bus2Rect = new Rectangle(0, busStartY + busDeltaY, busWidth, busHeigth);
-		bus2Line = createBusAndLine(bus2Rect, bus2Line, busWidth, busHeigth, BUS2_IMG_PATH, BUS_PATH, busMoveDst,
-				busDeltaY * 1);
-
-		bus3Rect = new Rectangle(0, busStartY + busDeltaY * 2, busWidth, busHeigth);
-		bus3Line = createBusAndLine(bus3Rect, bus3Line, busWidth, busHeigth, BUS3_IMG_PATH, BUS_PATH, busMoveDst,
-				busDeltaY * 2);
-
-		createLinePoints(centerCenterPane, busWidth, busHeigth, busMoveDst);
-		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY, busMoveDst);
-		createLinePoints(centerCenterPane, busWidth, busHeigth + busDeltaY * 2, busMoveDst);
-
-		centerCenterPane.getChildren().addAll(bus1Rect, bus2Rect, bus3Rect, bus1Line, bus2Line, bus3Line);
-
-		bottomPane.getChildren().addAll(startBtn, exitBtn);
 	}
 
 	private void createLinePoints(Pane pane, int startX, int startY, int busMoveDst) {
@@ -254,7 +259,7 @@ public class MainApp extends Application {
 		}
 	}
 
-	private Line createBusAndLine(Rectangle busRect, Line busLine, int busWidth, int busHeight, String imgPath,
+	public Line createBusAndLine(Rectangle busRect, Line busLine, int busWidth, int busHeight, String imgPath,
 			int busPath, int busMoveDst, int busDeltaY) {
 		InputStream imgStream = this.getClass().getClassLoader().getResourceAsStream(imgPath);
 		busRect.setFill(new ImagePattern(new Image(imgStream)));
@@ -278,21 +283,21 @@ public class MainApp extends Application {
 		bl3.addAll(route);
 
 		CountDownLatch cl1 = new CountDownLatch(BUS1_MAX);
-		Bus b1 = new Bus(BUS1_NAME, BUS1_MAX, 0, bl1, cl1, t1, lTopLeftOccupied, trBus1, bus1Rect);
+		Bus b1 = new Bus(BUS1_NAME, BUS1_MAX, 0, bl1, cl1, t1, lTopLeftOccupied, trBus1, bus1Rect, musicStopThread);
 		lTopLeft.setText(b1.getName());
 		lTopLeftSpeed.setText("Speed:" + b1.getSpeed());
 		lTopLeftOccupied.setText("Occupied:" + b1.getCurPassengers());
 		lTopLeftMax.setText("Max:" + b1.getMaxPassengers());
 
 		CountDownLatch cl2 = new CountDownLatch(BUS2_MAX);
-		Bus b2 = new Bus(BUS2_NAME, BUS2_MAX, 0, bl2, cl2, t2, lTopCenterOccupied, trBus2, bus2Rect);
+		Bus b2 = new Bus(BUS2_NAME, BUS2_MAX, 0, bl2, cl2, t2, lTopCenterOccupied, trBus2, bus2Rect, musicStopThread);
 		lTopCenter.setText(b2.getName());
 		lTopCenterSpeed.setText("Speed:" + b2.getSpeed());
 		lTopCenterOccupied.setText("Occupied:" + b2.getCurPassengers());
 		lTopCenterMax.setText("Max:" + b2.getMaxPassengers());
 
 		CountDownLatch cl3 = new CountDownLatch(BUS3_MAX);
-		Bus b3 = new Bus(BUS3_NAME, BUS3_MAX, 0, bl3, cl3, t3, lTopRightOccupied, trBus3, bus3Rect);
+		Bus b3 = new Bus(BUS3_NAME, BUS3_MAX, 0, bl3, cl3, t3, lTopRightOccupied, trBus3, bus3Rect, musicStopThread);
 		lTopRight.setText(b3.getName());
 		lTopRightSpeed.setText("Speed:" + b3.getSpeed());
 		lTopRightOccupied.setText("Occupied:" + b3.getCurPassengers());
@@ -313,18 +318,21 @@ public class MainApp extends Application {
 		try {
 			BorderPane root = new BorderPane(centerHBox, topHBox, null, bottomHBox, leftHBox);
 			Scene scene = new Scene(root, WIDTH, HEIGHT);
-			scene.getStylesheets().add(getClass().getClassLoader().getResource(CSS_STYLE_PATH).toExternalForm());
+			scene.getStylesheets().add(getClass().getClassLoader().getResource(CSS_STYLE_PATH).toExternalForm());			
 			primaryStage.setScene(scene);
 			primaryStage.setTitle(APP_NAME);
 			primaryStage.setResizable(false);
-			primaryStage.show();
+			primaryStage.show();			
+			player = new Player();
+			musicStopThread = new MusicStopThread(player);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
 		startBtn.setOnAction(new EventHandler<ActionEvent>() {
 			@Override
-			public void handle(ActionEvent event) {
+			public void handle(ActionEvent event) {				
+				player.play();
 				process();
 				startBtn.setDisable(true);
 			}
