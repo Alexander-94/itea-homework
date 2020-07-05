@@ -53,7 +53,7 @@ public class Passenger implements Runnable {
 
 			// passenger has been banned for not wearing a mask
 			if (isBanned) {
-				return;
+				break;
 			}
 		}
 	}
